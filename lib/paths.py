@@ -69,7 +69,7 @@ AREA_SUBDIRS = (DECISIONS_SUB, MEETINGS_SUB, NOTES_SUB)
 RELATION_MAP = F["relationship_map"]  # relationship map in the primary area of a context
 HUB_SUFFIX = "-hub.md"               # <area-slug>-hub.md
 MOC_SUFFIX = "-moc.md"               # <name>-moc.md
-# vendor / bulk reference folders: kept out of `.claude/index.md` and `brain find --text` by default (their MOC or
+# vendor / bulk reference folders: kept out of `.claude/index.md` by default (their MOC or
 # README still gets an index line); folders whose README has `graph: false` are out of the graph altogether
 VENDOR_DIRS = tuple(CFG["vendor_dirs"])
 AGENT_INDEX = ".claude/index.md"     # generated navigation index (brain context --write)
@@ -285,16 +285,6 @@ def iter_notes(root, include_archives=True):
         yield p
 
 
-def iter_people(root):
-    """Person notes in the people registry, sorted."""
-    yield from sorted((Path(root) / PEOPLE_DIR).glob("*.md"))
-
-
-def iter_dailies(root):
-    """Daily notes in 10_Daily/YYYY/, sorted by date."""
-    yield from sorted(Path(root).glob(DAILY_GLOB), key=lambda p: p.name)
-
-
 def is_daily(relpath):
     rp = Path(nfc(str(relpath)))
     if not DAILY_RE.match(rp.name):
@@ -315,11 +305,6 @@ def people_dir(root, context=None):
     return Path(root) / PEOPLE_DIR
 
 
-def area_dirs(root):
-    base = Path(root) / AREAS
-    return sorted(d for d in base.iterdir() if d.is_dir() and not d.name.startswith(".")) if base.is_dir() else []
-
-
 def project_dirs(root, include_archives=False):
     base = Path(root) / PROJECTS
     out = sorted(d for d in base.iterdir() if d.is_dir() and not d.name.startswith(".")) if base.is_dir() else []
@@ -338,7 +323,7 @@ def is_moc(name):
 
 def area_hub(area_dir):
     """The area note: `<area-slug>-hub.md` inside an area folder (first match), or the expected path when missing.
-    It carries the area entity (type: area, kind: role, context, sources, rituals) and the auto:projection block."""
+    It carries the area entity (type: area, kind: role, context, sources, rituals)."""
     area_dir = Path(area_dir)
     hubs = sorted(area_dir.glob("*" + HUB_SUFFIX))
     return hubs[0] if hubs else area_dir / f"{area_dir.name}{HUB_SUFFIX}"

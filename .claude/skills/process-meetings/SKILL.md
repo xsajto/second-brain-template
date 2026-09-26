@@ -7,7 +7,6 @@ effort: medium
 # process-meetings
 
 Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/brain`,
-`ROUTE` = `python3 .claude/skills/process-meetings/scripts/route.py`,
 `CHECK` = `python3 .claude/skills/process-meetings/scripts/check_evidence.py`.
 Notes and chat in `brain.config.json › language`. Idempotent: a transcript with `processed: true` or already in
 `50_Raw/meetings/` is skipped.
@@ -24,9 +23,13 @@ Notes and chat in `brain.config.json › language`. Idempotent: a transcript wit
 - More than 5 candidates → table (file · predicted route · score) and ask once "process all n?".
 
 ## 2. Per transcript (oldest first)
-1. **Route**: `ROUTE <file> [--title "<calendar title>"] [--attendees "A,B"]` → `route`, `target`, `reason`,
-   `candidates`. `target`: `20_Projects/<slug>/` (flat) or `…/<meetings folder>/` (branch project), a ritual note
-   (area or person with `meeting_match:`), or `00_Inbox/meetings/` when ambiguous. A transcript that belongs to
+1. **Route** (case- and diacritics-insensitive, by hand): a note with `meeting_match:` (`grep -rl
+   "^meeting_match:" 20_Projects 30_Areas <people folder>`) whose string occurs in the meeting title wins (longest
+   match; a tie → ambiguous). Else score each `20_Projects/*/CLAUDE.md` with `status: active` against title, text
+   and attendees: +3 slug or title named, +2 per `keywords` hit, +1 per keyword in the title, +2 per
+   `stakeholders` person named, +1 same context. Winner needs ≥ 4 and a lead ≥ 2, else ambiguous. `target`:
+   `20_Projects/<slug>/` (flat) or `…/<meetings folder>/` (branch project), the ritual note, or
+   `00_Inbox/meetings/` when ambiguous; keep the top scores as `candidates`. A transcript that belongs to
    another root (multi-root vault) → propose moving it to that root's `00_Inbox/meetings/`, skip.
 2. **Extract** (read the transcript once): summary 3–5 sentences, decisions (explicit outcomes only), action
    items `- [ ] **who** — what — due` (the user's own first; the user = the person note with `me: true`), open
@@ -34,8 +37,8 @@ Notes and chat in `brain.config.json › language`. Idempotent: a transcript wit
 3. **Project route**: `BRAIN create meeting "<Title>" --project <slug>` (dry run) shows the note; the CLI dates
    it today, so for an older meeting write that same content at `<target><meeting date>-<kebab title>.md` with
    `id: meeting/<that stem>` and run `BRAIN validate --file <it>`; else `--apply`. Fill the template's sections.
-   Attendees that equal exactly one person's title, alias or e-mail → `BRAIN link <note> --attendees
-   "[[person]]" --apply`; others become person proposals. Then the project's `CLAUDE.md`: new decisions under
+   Attendees that equal exactly one person's title, alias or e-mail → `"[[person]]"` in the note's
+   `attendees:` frontmatter; others become person proposals. Then the project's `CLAUDE.md`: new decisions under
    `## Decisions` (`- YYYY-MM-DD — decision`), the user's action items under `## Next steps` (deduplicated), and
    inside `## Status` (blocks created there when missing) one line in `<!-- auto:meetings -->`
    (`- YYYY-MM-DD [[note|Title]] — one line`) and `<!-- auto:status -->` rewritten in 3 lines (where it stands ·
@@ -60,10 +63,10 @@ One line under `## Log` of today's daily note.
 
 ## Tuning
 Routing improves when projects carry `keywords:` and `stakeholders:` and rituals carry `meeting_match:`
-(`ROUTE --list` shows the table). Propose adding a keyword when the user corrects a route.
+Propose adding a keyword when the user corrects a route.
 
 ## Hard rules
 - Never fabricate a decision, task, deadline, number or attendee; no note is final while `CHECK` reports MISSING.
 - A summary is never saved as a transcript; transcripts are moved, never deleted or edited.
-- Relation keys only via `bin/brain link`; text outside managed blocks and the named sections stays untouched.
+- Relation keys are frontmatter wikilinks (`BRAIN validate --file <note>` after an edit); text outside managed blocks and the named sections stays untouched.
 - Read-only outside the vault.

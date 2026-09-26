@@ -44,9 +44,9 @@ fresh clone — run `bin/brain doctor`, then suggest `/onboarding`.
 ## Who edits what
 
 - Prose outside managed blocks: edit freely.
-- Structure — `id`, `type`, relation keys, moves, renames, new entities — goes through
-  `bin/brain create|link|unlink|move|rename` (dry run by default, `--apply` to write).
-- Exploration: `bin/brain find|show|related|project`.
+- Structure — `id`, `type`, moves, renames, new entities — goes through `bin/brain create|move|rename`
+  (dry run by default, `--apply` to write); relation keys are frontmatter wikilinks edited directly.
+- Exploration: `.claude/index.md` first, then Glob/Grep/Read.
 - `bin/brain validate` should pass after any structural change.
 
 ## Sources are reference-only
@@ -67,7 +67,7 @@ bulk-download external data into the vault.
 
 | skill | what it does |
 |---|---|
-| `onboarding` | Interviews the user, writes `brain.config.json`, creates folders and first notes, connects optional sources, schedules the daily/weekly routines. |
+| `onboarding` | Detaches the clone from the template (fresh git), checks the install (`--check`), interviews the user, writes `brain.config.json`, creates folders and first notes, connects Google (`gog`) and company connectors (`.mcp.json`), schedules the daily/weekly routines. |
 | `morning` | Daily: calendar + sources + Inbox + open Top 3 → daily note, plus a light link review of yesterday's changes. |
 | `weekly` | Weekly: curator pass (dedup, stale facts, lifecycle), link review, inbox triage, project status refresh, portfolio block, health check. |
 | `process-meetings` | Turns transcripts in `00_Inbox/meetings/` into meeting notes routed to the right project or area. |

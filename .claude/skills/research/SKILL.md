@@ -23,7 +23,7 @@ subagent results) is saved the same way: skip to step 4 with what exists.
   External material kept verbatim (a PDF, a price list) → `50_Raw/` and cited.
 
 ## Living documents
-- Before starting: `BRAIN find --text "<topic>"` and `ls 40_Knowledge/*/research/`. Same question → revise that
+- Before starting: `grep -ril "<topic>" 40_Knowledge 20_Projects` and `ls 40_Knowledge/*/research/`. Same question → revise that
   folder; a genuinely different question → a new folder linked via `related`.
 - Any later conversation that changes facts, options, scores or the verdict (correction, new data, a redo) →
   edit the affected documents in place so they read as the current truth, bump `version`, set `updated`, and

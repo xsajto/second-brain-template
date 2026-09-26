@@ -5,7 +5,7 @@ Layout: <tmp>/ws is the workspace (BRAIN_WORKSPACE; no templates/docs, so the bu
 the vault root is the workspace itself (single root, like a fresh clone of this repo); `name=` puts the root in a
 subfolder (multi-root tests). Nothing here touches a real vault: BRAIN_ROOT points the CLI at the fixture,
 BRAIN_CACHE / BRAIN_WRITTEN keep the parse cache and the own-write ledger inside the temp dir, BRAIN_SCHEMA points
-at a temp copy of lib/schema.json (so `brain schema … --apply` never edits the real one) and BRAIN_CONFIG at
+at a temp copy of lib/schema.json (so a test never edits the real one) and BRAIN_CONFIG at
 <tmp>/brain.config.json, written only when the test passes `config=` (else the defaults apply).
 
 Importing this module pins BRAIN_CONFIG for the test process too, so a user's brain.config.json never changes

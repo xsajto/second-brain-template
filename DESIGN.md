@@ -72,7 +72,8 @@ All proposals are numbered and applied after the user says yes. No background au
 the user-scheduled routines.
 
 ## Engine facts (from phase 1)
-- CLI: `bin/brain validate|index|context|find|show|related|project|create|link|unlink|move|rename|schema|doctor|test`.
+- CLI: `bin/brain validate|context|create|move|rename|doctor|test`; everything else is SKILL.md instructions
+  executed with Glob/Grep/Read/Edit/git.
 - `brain create` reads `templates/{person,project-claude,area-hub,meeting-note,decision,daily,system,org,concept}.md`
   with `{{PLACEHOLDERS}}`; missing template → built-in stub.
 - Config lookup: `$BRAIN_CONFIG` → `$BRAIN_WORKSPACE` → nearest folder with `brain.config.json`. Git = the repo holding

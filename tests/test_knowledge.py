@@ -1,6 +1,5 @@
-"""Tests for the 40_Knowledge/ layout: namespaces + topics, the type/kind registry (`brain schema`), `@entity`
-relation wildcards, `brain create` destinations, validate codes (knowledge-depth, knowledge-loose, stem-collision)
-and knowledge hub projections. All on the temp fixture vault (fixture.Vault) with a temp copy of schema.json
+"""Tests for the 40_Knowledge/ layout: namespaces + topics, the type/kind registry (schema.json), `@entity`
+relation wildcards, `brain create` destinations and validate codes (knowledge-depth, knowledge-loose, stem-collision). All on the temp fixture vault (fixture.Vault) with a temp copy of schema.json
 (BRAIN_SCHEMA)."""
 import json
 import sys
@@ -14,6 +13,14 @@ from fixture import LIB, Vault  # noqa: E402
 sys.path.insert(0, str(LIB))
 import paths  # noqa: E402
 import vault  # noqa: E402
+
+def add_entity_type(v, name):
+    """What a hand edit of schema.json does: register an entity type with any kind."""
+    raw = json.loads(v.schema.read_text(encoding="utf-8"))
+    raw["types"]["entity"].append(name)
+    raw["kinds"][name] = []
+    v.schema.write_text(json.dumps(raw), encoding="utf-8")
+
 
 SITE = "---\nid: location/{s}\ntype: location\ntitle: {t}\ncontext: work\n{extra}---\n\n# {t}\n"
 
@@ -50,10 +57,6 @@ class Library(unittest.TestCase):
         self.assertEqual(sch["relations"]["related"]["from"], ["*"])
         self.assertEqual(raw["relations"]["part_of"]["from"], ["@entity"])  # the raw schema is not modified
 
-    def test_dump_schema_round_trip(self):
-        text = (LIB / "schema.json").read_text(encoding="utf-8")
-        self.assertEqual(vault.dump_schema(vault.load_schema_raw(LIB / "schema.json")), text)
-
     def test_namespace_helpers(self):
         self.assertEqual(paths.namespace_of("40_Knowledge/work/infra/x.md"), "work")
         self.assertEqual(paths.namespace_of("40_Knowledge/work"), "work")
@@ -70,38 +73,6 @@ class Library(unittest.TestCase):
         self.assertEqual(vault.infer_type("00_Inbox/x.md", ["idea"], sch), ("note", "idea"))  # tag still works
 
 
-class SchemaCmd(KCase):
-    def test_add_type_dry_run_then_apply(self):
-        before = self.v.schema.read_text(encoding="utf-8")
-        r = self.ok("schema", "add-type", "location", "--entity", "--kinds", "dc,office", "--label", "Locations")
-        self.assertIn('+    "entity": [', r.stdout)
-        self.assertIn("dry run", r.stdout)
-        self.assertEqual(self.v.schema.read_text(encoding="utf-8"), before)
-        self.ok("schema", "add-type", "location", "--entity", "--kinds", "dc,office", "--label", "Locations",
-                "--apply")
-        raw = json.loads(self.v.schema.read_text(encoding="utf-8"))
-        self.assertIn("location", raw["types"]["entity"])
-        self.assertEqual(raw["kinds"]["location"], ["dc", "office"])
-        self.assertEqual(raw["labels"]["location"], "Locations")
-        self.assertEqual(self.v.schema.read_text(encoding="utf-8"), vault.dump_schema(raw))  # house style kept
-        self.assertEqual(self.v.brain("schema", "add-type", "location").returncode, 2)       # duplicate refused
-        self.assertEqual(self.v.brain("schema", "add-type", "Bad Name").returncode, 2)       # not kebab
-        logs = list((self.v.root / paths.BRAIN_LOGS).glob("*.jsonl"))
-        self.assertTrue(any('"schema-add-type"' in f.read_text() for f in logs))
-
-    def test_add_kind(self):
-        self.ok("schema", "add-kind", "system", "rack", "--apply")
-        self.assertIn("rack", json.loads(self.v.schema.read_text())["kinds"]["system"])
-        self.assertEqual(self.v.brain("schema", "add-kind", "system", "rack").returncode, 2)
-        self.assertEqual(self.v.brain("schema", "add-kind", "nope", "x").returncode, 2)
-
-    def test_list_reports_off_schema(self):
-        self.v.put("40_Knowledge/work/infra/dc.md", SITE.format(s="dc", t="DC", extra=""))
-        d = json.loads(self.ok("schema", "list", "--json").stdout)
-        self.assertEqual(d["off_schema_types"], {"location": 1})
-        self.assertIn("system", [t["type"] for t in d["types"]["entity"]])
-
-
 class NewType(KCase):
     extra = {
         "40_Knowledge/work/infra/locations/dc-north.md": SITE.format(s="dc-north", t="DC North", extra=""),
@@ -113,8 +84,8 @@ class NewType(KCase):
         unk = self.codes("unknown-type")
         self.assertEqual(len(unk), 2)
         self.assertEqual(unk[0]["severity"], "error")
-        self.assertIn("brain schema add-type location", unk[0]["detail"])
-        self.ok("schema", "add-type", "location", "--entity", "--apply")
+        self.assertIn("lib/schema.json › types", unk[0]["detail"])
+        add_entity_type(self.v, "location")
         issues = self.validate()
         bad = [i for i in issues if i["code"] in ("unknown-type", "relation-source-type", "relation-target-type",
                                                   "type-folder-mismatch", "bad-id-format")]
@@ -128,7 +99,7 @@ class NewType(KCase):
         self.v.put("40_Knowledge/work/infra/s.md", "---\nid: system/s\ntype: system\nkind: rack\ntitle: S\n"
                                                      "context: work\n---\n")
         uk = self.codes("unknown-kind")
-        self.assertIn("brain schema add-kind system rack", uk[0]["detail"])
+        self.assertIn("lib/schema.json › kinds", uk[0]["detail"])
 
 
 class Create(KCase):
@@ -163,7 +134,7 @@ class Create(KCase):
 
     def test_new_type_after_add_type(self):
         self.assertEqual(self.v.brain("create", "location", "DC South").returncode, 2)
-        self.ok("schema", "add-type", "location", "--entity", "--apply")
+        add_entity_type(self.v, "location")
         self.ok("create", "location", "DC South", "--context", "work", "--topic", "infra", "--apply")
         fmo = vault.Frontmatter(self.v.read("40_Knowledge/work/infra/dc-south.md"))
         self.assertEqual(fmo.get("type"), "location")
@@ -202,55 +173,7 @@ class ValidateKnowledge(KCase):
                             ("knowledge-depth", "knowledge-loose", "stem-collision")))
 
 
-class Hubs(KCase):
-    extra = {f"40_Knowledge/work/infra/s{i}.md":
-             f"---\nid: system/s{i}\ntype: system\nkind: site\ntitle: Site {i}\ncontext: work\n---\n\nServer room {i}.\n"
-             for i in range(10)}
-    extra.update({f"40_Knowledge/work/small/m{i}.md": f"---\nid: note/m{i}\ntype: note\ntitle: M{i}\n---\n"
-                  for i in range(3)})
-    # a repository note whose stem ends in -hub is an ordinary note, not the folder hub
-    extra["40_Knowledge/work/infra/repo-infra-mcp-hub.md"] = ("---\nid: system/repo-infra-mcp-hub\ntype: system\n"
-                                                              "kind: repository\ntitle: infra/mcp-hub\n---\n\nRepo.\n")
-    extra["40_Knowledge/knowledge-moc.md"] = ("---\nid: map/knowledge-moc\ntype: map\nkind: moc\ntitle: Knowledge MOC\n"
-                                              "---\n\n# Knowledge\n\n<!-- auto:projection start -->\n"
-                                              "<!-- auto:projection end -->\n")
-
-    def test_all_write_creates_hubs_and_moc_lists_namespaces(self):
-        self.ok("project", "--all", "--write", "--apply")
-        ns_hub = self.v.read("40_Knowledge/work/work-hub.md")
-        fmo = vault.Frontmatter(ns_hub)
-        self.assertEqual((fmo.get("id"), fmo.get("type"), fmo.get("kind"), fmo.get("context")),
-                         ("map/work-hub", "map", "hub", "work"))
-        self.assertIn("[[infra-hub|infra/]] (11)", ns_hub)
-        infra = self.v.read("40_Knowledge/work/infra/infra-hub.md")
-        self.assertIn("**Systems (11)**", infra)
-        self.assertIn("[[s0|Site 0]] — site · Server room 0.", infra)
-        self.assertIn("[[repo-infra-mcp-hub|infra/mcp-hub]] — repository · Repo.", infra)
-        self.assertNotIn("auto:projection", self.v.read("40_Knowledge/work/infra/repo-infra-mcp-hub.md"))
-        self.assertFalse((self.v.root / "40_Knowledge/work/billing/billing-hub.md").exists())  # 1 note
-        self.assertFalse((self.v.root / "40_Knowledge/work/small/small-hub.md").exists())  # 3 notes < 10
-        moc = self.v.read("40_Knowledge/knowledge-moc.md")
-        self.assertIn("**Registry**", moc)
-        self.assertIn("**Namespaces**", moc)
-        self.assertIn("- **work/** (15)", moc)
-        self.assertIn("[[infra-hub|infra/]] (11)", moc)
-        self.v.commit()
-        self.assertIn("nothing to change", self.ok("project", "--all", "--write", "--apply").stdout)
-
-
-class BigHub(KCase):
-    extra = {f"40_Knowledge/work/repos/r{i:02d}.md":
-             f"---\nid: system/r{i:02d}\ntype: system\nkind: repository\ntitle: R{i:02d}\ncontext: work\n---\n"
-             + ("\n[[r00]]\n" if i else "") for i in range(30)}
-
-    def test_compact_projection(self):
-        self.ok("project", "--all", "--write", "--apply")
-        hub = self.v.read("40_Knowledge/work/repos/repos-hub.md")
-        self.assertIn("**Notes (30)** — system/repository 30", hub)
-        self.assertIn("- [[r00|R00]]", hub)                 # best connected first
-        self.assertIn("… +15 more", hub)
-        self.assertLess(hub.count("\n- "), 20)
-
+class FolderHub(unittest.TestCase):
     def test_folder_hub_rule(self):
         self.assertTrue(vault.is_folder_hub("40_Knowledge/a/repos/repos-hub.md"))
         self.assertTrue(vault.is_folder_hub("40_Knowledge/a/servers/infrastructure-servers-31-hub.md"))

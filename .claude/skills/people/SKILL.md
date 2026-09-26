@@ -6,8 +6,7 @@ effort: high
 ---
 # people
 
-Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/brain`,
-`PEOPLE` = `python3 .claude/skills/people/scripts/people.py` (`--help`). Person notes live in the people registry
+Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/brain`. Person notes live in the people registry
 (`brain.config.json › folders.people`). Notes and chat in `brain.config.json › language`.
 
 ## Arguments
@@ -15,13 +14,13 @@ Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/bra
 `days` — evidence window, default 90 (first profile of a person: 365).
 
 ## 1. Registry
-`PEOPLE --list [--context C]` → name, path, context, role, org, e-mail, aliases, `profile` flag, `last_log`,
-relations. `profile: false` → skip that person entirely. The user is the note with `me: true`.
+Read the frontmatter of every note in the people folder (optionally one `context`): title, role, org, e-mail,
+aliases, `profile`, plus the newest date under `## Log` and the relation lines of its `auto:profile` block. `profile: false` → skip that person entirely. The user is the note with `me: true`.
 
 ## 2. Evidence (read-only; one subagent per person when more than 3, `model: haiku`, ≤ 20 lines, source ids)
 | source | what to extract |
 |---|---|
-| vault: the person note, meeting notes and transcripts naming them (`BRAIN find --text "<name>"`, `BRAIN related <note>`), daily notes | dated observations, decisions, how they speak (turn length, questions vs statements, data vs story) |
+| vault: the person note, meeting notes and transcripts naming them (`grep -ril "<name>"`, `grep -rl "\[\[<stem>"`), daily notes | dated observations, decisions, how they speak (turn length, questions vs statements, data vs story) |
 | mail (`gog gmail search 'from:<email> OR to:<email> newer_than:<days>d'`), when connected | formality, length, reply latency, when they write |
 | chat via its MCP (messages from them and DMs with the user), when connected | directness, channel habits, response time |
 | calendar (`gog calendar events` filtered by attendee), when connected | cadence of contact, shared rituals |
@@ -42,18 +41,21 @@ Evidence files go to `50_Raw/logs/people/evidence/<stem>-evidence.md` (plain, no
 ```
 Headings in the note language; the `- [[stem|Name]] — relation — strength` line shape stays (the map reads it).
 Depth follows evidence: fewer than 3 interactions and no 1:1 → only the first two lines and `Confidence: low`.
-Change only what new evidence supports; keep earlier lines otherwise. Write it with
-`PEOPLE --write-block <person.md> --from <scratch file>`, then one log line
-`PEOPLE --log <person.md> --line "<what changed and why> (source)"`.
+Change only what new evidence supports; keep earlier lines otherwise. Replace only the
+`<!-- auto:profile start -->…<!-- auto:profile end -->` block (missing → insert above `## Log`), then append
+`- YYYY-MM-DD — <what changed and why> (source)` under `## Log` (created when missing).
 Explicit role/org/e-mail found in evidence (signature, org chart) → numbered proposal to update frontmatter;
-`member_of`/`stakeholders` edges only via `BRAIN link … --apply` after "yes".
+`member_of`/`stakeholders` edges are added to the frontmatter only after "yes".
 
 ## 4. New people
 A name seen in ≥ 3 interactions (or one 1:1) without a note → proposal `N. [person] Name → <people folder>
 (role?, evidence)`; on "yes" `BRAIN create person "<Name>" --context <ctx> --apply`. Never from a single mention.
 
 ## 5. Map, log, report
-- Per touched context: `PEOPLE --map <context> --write` → `<primary area>/<relationship map file>` (`auto:map`).
+- Per touched context: a mermaid `graph LR` from the relation lines of its people's profiles — a node per person
+  `["Name · role"]`, a person without a note `(["Name"])`, edges `==>` strength 4–5, `-->` 2–3, `-.->` 1 or
+  unknown, labelled `|relation|` — into the `<!-- auto:map -->` block of `<primary area>/<relationship map file>`
+  (file missing → create it with `type: map`, `title`, `context`).
 - Run log `50_Raw/logs/people/YYYY-MM-DD-HHMM.md`: scope, window, sources and gaps, per person evidence count
   and whether the block changed, proposals as `N. … — yes|no|pending`, then `## Friction` (`- none` if nothing).
 - Chat ≤ 12 lines: who was updated, the single most useful tip per person, numbered proposals.

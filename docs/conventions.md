@@ -69,12 +69,12 @@ suggest.
 
 `kind` is a sub-classification of `type` (e.g. `org` → `company`/`team`, `meeting` → `ritual`/`one-off`/
 `1on1`); `lib/schema.json` › `kinds` lists what's allowed per type, and an empty list there means any kind
-is accepted. Add a new kind or type with `bin/brain schema add-kind|add-type` rather than forcing a note
-into one that doesn't fit — it's a dry run until `--apply`.
+is accepted. Add a new kind or type to `lib/schema.json` rather than forcing a note
+into one that doesn't fit; `bin/brain validate` checks notes against it.
 
 ## 40_Knowledge/ hub thresholds
 
-A folder under `40_Knowledge/` gets a generated `<folder>-hub.md` once it has at least `hub_min_notes`
+A folder under `40_Knowledge/` deserves a hand-kept `<folder>-hub.md` once it has at least `hub_min_notes`
 (default 10) notes, recursively, or at least `hub_min_subdirs` (default 2) subfolders. A folder past
 `list_max` (default 25) notes collapses to a single line in `index.md` rather than listing every note. The
 `split_threshold` (15), `cluster_threshold` (5) and `namespace_threshold` (3) settings don't trigger

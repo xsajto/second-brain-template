@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "doc": "Knowledge-graph schema (numbered roots, ascii kebab-case names). Read by lib/vault.py and bin/brainkg.py; extend it with `brain schema add-type|add-kind`. Markdown is the source of truth; relations are stored only in their canonical direction, inverses are computed by the index. Relation from/to wildcards: \"*\" = any type, \"@entity\" = every type in types.entity (resolved at load time). `{{name}}` in inference patterns and companion names = the folder from brain.config.json › folders (people, orgs, meetings, decisions, ideas, relationship_map, system_docs …).",
+  "doc": "Knowledge-graph schema (numbered roots, ascii kebab-case names). Read by lib/vault.py and bin/brainkg.py; extend it by editing types/kinds here. Markdown is the source of truth; relations are stored only in their canonical direction, inverses are computed by the index. Relation from/to wildcards: \"*\" = any type, \"@entity\" = every type in types.entity (resolved at load time). `{{name}}` in inference patterns and companion names = the folder from brain.config.json › folders (people, orgs, meetings, decisions, ideas, relationship_map, system_docs …).",
   "id_format": "<type>/<ascii-kebab>",
   "types": {
     "entity": ["person", "org", "system", "project", "area", "meeting", "decision", "concept"],

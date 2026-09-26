@@ -51,7 +51,6 @@ FM_RE = re.compile(r"\A---[ \t]*\n(.*?)\n---[ \t]*\n", re.S)
 FM2_RE = re.compile(r"\A(---[ \t]*\n)(?:(.*?)\n)?(---[ \t]*(?:\n|\Z))", re.S)
 WIKILINK_RE = re.compile(r"\[\[([^\]\|#\^]+)(?:[#\^][^\]\|]*)?(?:\|[^\]]*)?\]\]")
 LINK_RE = re.compile(r"\[\[([^\]\|#\^\n]+)((?:[#\^][^\]\|\n]*)?)((?:\|[^\]\n]*)?)\]\]")
-LINKS_BLOCK_RE = re.compile(r"\n?<!-- auto:links start -->.*?<!-- auto:links end -->\n?", re.S)
 AUTO_LINKS_INNER_RE = re.compile(r"<!-- auto:links start -->(.*?)<!-- auto:links end -->", re.S)
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 KEY_RE = re.compile(r"^([A-Za-z_][\w.-]*)[ \t]*:(?:[ \t]+|$)(.*)$")
@@ -128,7 +127,7 @@ def schema_path():
 
 
 def load_schema_raw(path=None):
-    """schema.json exactly as stored (wildcards such as "@entity" unexpanded) — for `brain schema` edits."""
+    """schema.json exactly as stored (wildcards such as "@entity" unexpanded) ."""
     return json.loads(Path(path or schema_path()).read_text(encoding="utf-8"), object_pairs_hook=dict)
 
 
@@ -183,32 +182,6 @@ def load_schema(path=None):
     return expand_schema(load_schema_raw(path))
 
 
-def dump_schema(raw):
-    """schema.json text in the file's house style: top-level keys one per line (2-space indent); second-level
-    objects one key per line (inline values, aligned when every value is an object), second-level lists of
-    objects one item per line; everything deeper inline."""
-    inline = lambda v: json.dumps(v, ensure_ascii=False)  # noqa: E731
-    out = ["{"]
-    items = list(raw.items())
-    for i, (k, v) in enumerate(items):
-        comma = "," if i < len(items) - 1 else ""
-        if isinstance(v, dict) and v:
-            sub = list(v.items())
-            pad = max(len(inline(sk)) + 1 for sk, _ in sub) if all(isinstance(sv, dict) for _, sv in sub) else 0
-            out.append(f"  {inline(k)}: {{")
-            for j, (sk, sv) in enumerate(sub):
-                key = (inline(sk) + ":").ljust(pad) if pad else inline(sk) + ":"
-                out.append(f"    {key} {inline(sv)}" + ("," if j < len(sub) - 1 else ""))
-            out.append("  }" + comma)
-        elif isinstance(v, list) and v and all(isinstance(x, dict) for x in v):
-            out.append(f"  {inline(k)}: [")
-            out += [f"    {inline(x)}" + ("," if j < len(v) - 1 else "") for j, x in enumerate(v)]
-            out.append("  ]" + comma)
-        else:
-            out.append(f"  {inline(k)}: {inline(v)}{comma}")
-    return "\n".join(out + ["}"]) + "\n"
-
-
 KNOWLEDGE_DEFAULTS = {"root": paths.KNOWLEDGE, "max_depth": 6,
                       "split_threshold": 15, "cluster_threshold": 5, "namespace_threshold": 3,
                       "hub_min_notes": 10, "hub_min_subdirs": 2, "list_max": 25}
@@ -227,11 +200,6 @@ def knowledge_cfg(schema, cfg=None):
                                  "shared": cfg["shared_namespace"]}
     out["flat"] = list(cfg.get("flat_knowledge") or [])
     return out
-
-
-def type_label(schema, typ):
-    """Plural label of a type for projections (schema["labels"] + config labels), else the type name."""
-    return (schema.get("labels") or {}).get(typ) or typ
 
 
 def all_types(schema):
@@ -1093,27 +1061,6 @@ def knowledge_folders(g):
 def folder_note_count(folders, d):
     """Notes (hubs and companions excluded) in folder `d` and every folder below it."""
     return sum(len(e["notes"]) for k, e in folders.items() if k == d or k.startswith(d + "/"))
-
-
-def knowledge_hub_folders(g, min_notes=None, min_subdirs=None, folders=None):
-    """Folders that should carry a `<folder>-hub.md`: namespace or topic folders with >= min_notes notes
-    (recursively) or >= min_subdirs subfolders holding notes (schema.json › knowledge.hub_min_notes /
-    hub_min_subdirs; small folders need no index). A folder with its own hand-made `*-moc.md` is already indexed
-    and needs no generated hub. -> {folder: existing hub rel or None}."""
-    cfg = knowledge_cfg(g.schema)
-    min_notes = cfg["hub_min_notes"] if min_notes is None else min_notes
-    min_subdirs = cfg["hub_min_subdirs"] if min_subdirs is None else min_subdirs
-    folders = folders if folders is not None else knowledge_folders(g)
-    out = {}
-    for d, e in folders.items():
-        if not e["ns"]:
-            continue
-        if e["mocs"]:
-            continue
-        subs = sum(1 for t in e["subdirs"] if folder_note_count(folders, f"{d}/{t}"))
-        if subs >= min_subdirs or folder_note_count(folders, d) >= min_notes:
-            out[d] = e["hubs"][0] if e["hubs"] else None
-    return out
 
 
 # ---------------------------------------------------------------- logging

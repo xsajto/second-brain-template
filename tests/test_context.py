@@ -1,5 +1,5 @@
 """Tests for the agent-context layer: .claude/index.md, .claude/hot.md, condition triggers, the PostToolUse
-validator (`brain validate --file`, `context.py --post-tool`), `brain find --text` ranking.
+validator (`brain validate --file`, `context.py --post-tool`).
 All on the temp fixture vault (fixture.Vault); BRAIN_TODAY pins the date."""
 import json
 import subprocess
@@ -206,41 +206,6 @@ class ValidateFile(ContextCase):
         self.assertEqual(r.returncode, 0)
 
 
-class FindText(ContextCase):
-    def test_ranking_diacritics_and_scope(self):
-        self.v.put("40_Knowledge/shared/concepts/cafe.md", "---\nid: concept/cafe\ntype: concept\ntitle: Café\n---\n")
-        d = json.loads(self.v.brain("find", "--text", "processing", "--json").stdout)
-        paths_ = [x["path"] for x in d]
-        self.assertEqual(paths_[0], "40_Knowledge/shared/concepts/data-processing.md")   # title hit first
-        self.assertIn("40_Knowledge/shared/concepts/pipeline.md", paths_)                # body hit
-        self.assertNotIn("99_Archives/work-old/CLAUDE.md", paths_)
-        self.assertNotIn("40_Knowledge/private/vendor-docs/vendor-loop.md", paths_)
-        all_ = [x["path"] for x in json.loads(self.v.brain("find", "--text", "processing", "--all", "--json").stdout)]
-        self.assertIn("99_Archives/work-old/CLAUDE.md", all_)
-        self.assertIn("40_Knowledge/private/vendor-docs/vendor-loop.md", all_)
-        hits = [x["path"] for x in json.loads(self.v.brain("find", "--text", "cafe", "--json").stdout)]
-        self.assertEqual(hits, ["40_Knowledge/shared/concepts/cafe.md"])                 # diacritics folded
-
-    def test_word_boundary_and_all_tokens(self):
-        # "data" must not match inside "metadata" (word-start matching)
-        self.v.put("40_Knowledge/shared/concepts/meta.md", "---\nid: concept/meta\ntype: concept\ntitle: Meta\n---\n"
-                   "metadata\n")
-        hits = [x["path"] for x in json.loads(self.v.brain("find", "--text", "data", "--json").stdout)]
-        self.assertNotIn("40_Knowledge/shared/concepts/meta.md", hits)
-        # any-match, ranked by distinct words hit: both words beat one word; stopwords ("where", "is") ignored
-        hits = [x["path"] for x in json.loads(self.v.brain("find", "--text", "where is pipeline night",
-                                                           "--json").stdout)]
-        self.assertEqual(hits[0], "40_Knowledge/shared/concepts/pipeline.md")
-        self.assertIn("40_Knowledge/shared/concepts/data-processing.md", hits)       # "Pipeline" in its body only
-
-    def test_stem_prefix(self):
-        # "processed" ~ "processing" through the 5-char stem
-        hits = [x["path"] for x in json.loads(self.v.brain("find", "--text", "processed", "--json").stdout)]
-        self.assertEqual(hits[0], "40_Knowledge/shared/concepts/data-processing.md")
-        r = self.v.brain("find", "--text", "where is it")
-        self.assertNotEqual(r.returncode, 0)                                # only stopwords
-
-
 class IndexCollapse(unittest.TestCase):
     def setUp(self):
         extra = dict(EXTRA)
@@ -262,7 +227,7 @@ class IndexCollapse(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         idx = self.v.read(".claude/index.md")
         self.assertIn("- ▸ 40_Knowledge/work/sites/*/*/servers/ — 30 notes in 2 folders · system/server 30", idx)
-        self.assertIn("`brain find --kind server --text …`", idx)
+        self.assertIn("`grep -ril … 40_Knowledge/work/sites`", idx)
         self.assertNotIn("[[a-srv3|", idx)
         self.assertIn("[[person-29|Person 29]]", idx)      # people registry is never collapsed
 

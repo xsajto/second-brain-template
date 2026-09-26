@@ -16,7 +16,7 @@ says otherwise). Never invent a source.
 
 ## 1. Find (read-only)
 - Key terms: the entity and 1–3 distinctive words or values of the OLD fact (also without diacritics).
-- `BRAIN find --text "<entity>"` → candidates; `BRAIN show "<entity>"` → its note (the likely authority).
+- The entity's line in `.claude/index.md` → its note (the likely authority); `grep -ril "<entity>"` → candidates.
 - `grep -rniF "<old value>" 00_Inbox 10_Daily 20_Projects 30_Areas 40_Knowledge` and `grep -rn "\^f-"` on the
   candidates. `99_Archives/` and `50_Raw/` are only counted, never read in full.
 - Keep lines that actually state the old fact (read ±2 lines); drop mere mentions.
@@ -27,8 +27,8 @@ says otherwise). Never invent a source.
 | AUTHORITATIVE | the entity note in `40_Knowledge/`, or `20_Projects/<slug>/CLAUDE.md` for a project's status, goal, dates, people — one per fact (two → ask) | old line `~~…~~ → replaced by ^f-<new>`; new line `- [category] <new fact> — <source>, YYYY-MM-DD, confidence: medium ^f-<new>` under `## Facts` (created above `## Log`) |
 | RESTATEMENT | undated notes repeating it: hubs, topic notes, other projects' notes | replace only that clause with `[[<authority stem>\|<label>]]` (+ ≤ 5 words) |
 | HISTORICAL | dated file names, meeting folders, `10_Daily/`, `00_Inbox/meetings/`, `50_Raw/`, `99_Archives/`, `## Log` lines, run logs | never edited; counted |
-Frontmatter values: `status:` changes are a proposal line; relation changes via
-`BRAIN unlink <note> --<rel> "[[x]]" --ended <date> --source <src>` / `BRAIN link`; `auto:` blocks are left to
+Frontmatter values: `status:` changes are a proposal line; an ended relation is removed
+from its frontmatter key by Edit and logged under `## Log` as `- <date> — ended: <rel> [[x]] (<src>)`; `auto:` blocks are left to
 their owning skill (listed as `auto → /weekly` or `/people`).
 
 ## 3. Propose (one round)

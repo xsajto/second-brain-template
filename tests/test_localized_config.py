@@ -55,10 +55,10 @@ class LocalizedConfig(unittest.TestCase):
         self.v.cleanup()
 
     def typ(self, note):
-        r = self.v.brain("show", note, "--json")
+        r = self.v.py(f"import json, paths, vault\ng = vault.Graph.load(paths.find_root())\n"
+                      f"n = g.nodes[g.resolve({note!r})]\nprint(json.dumps([n['type'], n['kind']]))")
         self.assertEqual(r.returncode, 0, r.stderr)
-        d = json.loads(r.stdout)
-        return d["type"], d["kind"]
+        return tuple(json.loads(r.stdout))
 
     def test_types_from_localized_folders(self):
         self.assertEqual(self.typ("ada-example")[0], "person")
@@ -89,18 +89,11 @@ class LocalizedConfig(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("create it in root domov/", r.stderr)
 
-    def test_labels_weekdays_stopwords_marker(self):
-        self.assertEqual(self.v.brain("project", "vedeni", "--write", "--apply").returncode, 0)
-        hub = self.v.read("30_Areas/vedeni/vedeni-hub.md")
-        self.assertIn("**Projekty (1)**", hub)
-        self.assertIn("**Rozhodnutí (1)**", hub)
+    def test_weekdays_marker(self):
         r = self.v.ctx("--hook")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("(čtvrtek)", r.stdout)
         self.assertIn("▸ 1 proposal from kurator", r.stdout)
-        hits = [x["path"] for x in json.loads(self.v.brain("find", "--text", "kde je zpracování", "--json").stdout)]
-        self.assertEqual(hits, ["40_Knowledge/prace/napady/napad.md"])
-        self.assertNotEqual(self.v.brain("find", "--text", "kde je").returncode, 0)     # only stopwords
 
 
 if __name__ == "__main__":

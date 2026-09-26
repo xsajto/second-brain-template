@@ -12,8 +12,8 @@ plus whatever else a note carries) and its body. Edges come from three places:
 - **Frontmatter relations** — wikilink lists such as `area:`, `project:`, `owner:`, `stakeholders:` (full
   list and canonical direction in `lib/schema.json` › `relations`, explained in `conventions.md`). Each
   relation is stored in **one direction only**: a project note has `area: [[cto-hub]]`, not the other way
-  round. `bin/brain related <note>` and `bin/brain project <role>` compute and show the inverse (an area's
-  projection lists the projects that point at it).
+  round. The inverse is found by searching for links to the note (`grep -rl "\[\[cto-hub"` lists the
+  projects of that area).
 - **Body wikilinks** (`links_to`, inverse `linked_from`) — any `[[wikilink]]` in the note's prose, outside
   a managed block.
 - **`auto:links` wikilinks** (`mentions`, inverse `mentioned_in`) — wikilinks that live inside an
@@ -57,15 +57,10 @@ machine-readable output.
 
 ## Managed blocks
 
-A block wrapped in `<!-- auto:NAME start -->` / `<!-- auto:NAME end -->` (`links`, `projection`, `profile`,
+A block wrapped in `<!-- auto:NAME start -->` / `<!-- auto:NAME end -->` (`links`, `profile`,
 `status`, `portfolio`, `registry`, …) is owned by tooling or a skill and rewritten wholesale on each run.
 Everything outside a managed block is the author's prose and is never touched by automation — a skill or
 script only ever replaces the content between one note's markers.
-
-`bin/brain project <role|entity|MOC|40_Knowledge/folder>` is what (re)writes a note's `auto:projection`
-block: a computed summary of its graph neighbourhood, e.g. an area's hub listing the projects and systems
-whose `area:`/`responsible_for:` points at it. `--write` applies it to one target, `--all` to every note
-that has a projection block.
 
 ## The branch/leaf folder rule
 

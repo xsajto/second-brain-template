@@ -6,17 +6,19 @@ effort: medium
 ---
 # morning
 
-Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/brain`,
-`REVIEW` = `python3 .claude/skills/weekly/scripts/review.py`, `DAILY` = `python3 .claude/skills/morning/scripts/daily.py`.
+Rules in `CLAUDE.md` bind this skill. Run from the workspace; `BRAIN` = `bin/brain`.
 Chat and notes in `brain.config.json › language`. Target: under 2 minutes of the user's time.
 
 ## Arguments
 `date` — default today; "tomorrow" = the next day (briefing only, no link review).
 
 ## 1. Daily note + carry-over
-`DAILY [--date D]` → JSON `path`, `created`, `carried` (unchecked Top 3 lines copied from the previous daily note
-as `- [ ] (from YYYY-MM-DD) …`, idempotent), `cursor` (date of the last `/morning` run log, else yesterday),
-`inbox` (captures, older than 7 days, pending transcripts).
+- Daily note `10_Daily/YYYY/D.md`; missing → `BRAIN create daily D --apply`. No `## … Top 3` section → add `## Top 3`.
+- Carry-over: in the newest daily note before D, unchecked `- [ ]` lines of the Top 3 section → today's Top 3 as
+  `- [ ] (from YYYY-MM-DD) …` (fill empty `- [ ]` placeholders first; skip items already there).
+- `cursor` = date of the newest `50_Raw/logs/morning/*.md`, else yesterday.
+- Inbox: captures in `00_Inbox/` (older than 7 days by date prefix, else mtime) and files in `00_Inbox/meetings/`
+  without `processed: true`.
 
 ## 2. Sources (read-only, in parallel where independent)
 Walk every entry of `integrations` in `brain.config.json`; its `morning` value says what to check there. For each:
@@ -27,15 +29,16 @@ Walk every entry of `integrations` in `brain.config.json`; its `morning` value s
   **FYI**; newsletters/notifications only as a count. Open a thread before saying what someone wants.
 - **MCP sources** (Slack, Linear, Jira, Notion, GitHub…): load tools with ToolSearch (`+slack`, `+linear` …),
   then one narrow query per the `morning` text since `cursor`. Items addressed to the user without a reply → Action.
-- **Meetings prep**: for each calendar event, `BRAIN find --text "<event title>"` and attendee names → link the
+- **Meetings prep**: for each calendar event, `grep -ril "<event title>"` and attendee names over
+  `20_Projects 30_Areas 40_Knowledge` → link the
   owning project/area/person note and one sentence of prep from it (open questions, last decisions).
 - **Nothing configured** → say once: "no sources connected — /onboarding connects calendar, mail, Slack…".
 **No silent skip**: a source that fails, is unauthorised or has no tool gets one line
 `⚠ <source>: unavailable — <what was tried / the fix>` in the briefing and in chat. Empty = `- nothing new`.
 
 ## 3. Write the briefing
-Write the block body to a scratch file and run `DAILY --briefing <file> [--date D]` (replaces only the
-`auto:briefing` block; the user's Top 3 and log stay untouched). Shape (headings in the note language):
+Replace only the `<!-- auto:briefing start -->…<!-- auto:briefing end -->` block of the daily note (missing → insert
+it right after the Top 3 section); the user's Top 3 and log stay untouched. Shape (headings in the note language):
 ```markdown
 ### Calendar
 - 09:00–09:30 **Title** · prep: one sentence · [[owning-note|Label]]
@@ -52,12 +55,14 @@ Sensitive content (salaries, credentials, health) is described, never copied. Ne
 you may suggest up to three candidates in chat.
 
 ## 4. Link review (light curator pass; skip for a future date)
-- `REVIEW links --since <cursor>` → notes changed since the last run with `unlinked` mentions of entities
-  (person, org, project, area, system, concept) and `orphan` flags. Read each listed note once.
+- Changed notes: `git log --since=<cursor> --name-only --format= -- '*.md'` + `git status --porcelain`, without
+  `99_Archives/`, `50_Raw/`, `00_Inbox/meetings/`. Read each once; entity titles and aliases (person, org,
+  project, area, system, concept) come from `.claude/index.md`. Flag mentions not yet wikilinked, and orphans
+  (no `[[…]]` out, and `grep -rl "\[\[<stem>"` finds nothing in).
 - Propose, numbered, one line each:
   - `[link] <note> → add [[stem|Title]] where "<term>" is mentioned` — only a real reference to that entity
     (same person/system, not a homonym); daily notes and meeting notes included.
-  - `[relation] <note> → brain link --<rel> "[[target]]"` when the mention is structural: attendees of a
+  - `[relation] <note> → <rel>: "[[target]]"` when the mention is structural: attendees of a
     meeting, stakeholders/owner of a project, `member_of` an org, `uses`/`depends_on` a system, `part_of`.
   - `[fact] <fact> → <entity note>` when a changed note states a durable fact about another entity; the
     target gets `- [category] fact — [[source-note]], YYYY-MM-DD ^f-<6hex>` (people: `, confidence: medium`
@@ -72,8 +77,8 @@ carried-over Top 3 · one line per `⚠` source · the numbered link-review prop
 (`1,3` · `all` · `none` · `-2` · `2: <edit>`). End with the daily note path.
 
 ## 6. Apply and log
-- Apply accepted proposals: wikilinks by a one-line Edit in the note body; relations only via
-  `BRAIN link <note> --<rel> "[[target]]"` then the same with `--apply`; facts as one appended line.
+- Apply accepted proposals: wikilinks by a one-line Edit in the note body; relations as a wikilink added to
+  the frontmatter key by Edit; facts as one appended line.
   `BRAIN validate` must not report new errors; re-read one touched line to confirm.
 - Run log `50_Raw/logs/morning/YYYY-MM-DD-HHMM.md`: sources used/failed, counts, proposals as
   `N. [kind] … — yes|no|edited|pending`, then `## Friction` (one line each; `- none` if nothing).

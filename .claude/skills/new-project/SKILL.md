@@ -26,14 +26,14 @@ them), links and ids verbatim, open questions, 3–8 search keywords.
 ## 2. Research in parallel (read-only)
 One subagent per available source (`model: haiku`, `general-purpose`, all in one message), each returning
 ≤ 15 lines of `title · link/id · date · one-line relevance`, exactly `nothing`, or `GAP: <why>`:
-- VAULT: `BRAIN find --text "<keywords>" --all` + frontmatter of hits (earlier notes, archived incarnations).
+- VAULT: `grep -ril "<keyword>" 20_Projects 30_Areas 40_Knowledge 99_Archives` + frontmatter of hits (earlier notes, archived incarnations).
 - Each connected source in `brain.config.json › integrations` (mail via `gog`, Slack/Linear/Jira/Notion/GitHub
   via their MCP tools, loaded with ToolSearch): matches for the title and keywords in the last 90 days.
 - Local repos only when the dump names one (`git -C <path> log -5 --oneline`, README).
 A source that is not connected is listed as `GAP: not connected`, never silently dropped.
 
 ## 3. Overlap check
-Write the dump to a scratch file and run `python3 .claude/skills/process-meetings/scripts/route.py <file>`:
+Score the dump against active projects as `/process-meetings` step 2.1 does:
 an active project scoring ≥ 4 is a probable duplicate → recommend updating it instead. An archived hit from
 VAULT → recommend reviving it (`BRAIN move 99_Archives/<slug> 20_Projects/`).
 
@@ -48,12 +48,12 @@ Ask: `1) create  2) change (say what)  3) cancel`. Loop on 2.
 ## 5. Create (only after 1)
 - `BRAIN create project "<Title>" --context <ctx> --area "<Area>" --slug <slug>` (dry run) → `--apply`; then fill
   the body as approved (≤ 80 lines). Stakeholders that equal exactly one person →
-  `BRAIN link 20_Projects/<slug>/CLAUDE.md --stakeholders "[[person]]" --apply`; unknown people → person
+  `"[[person]]"` in its `stakeholders:` frontmatter; unknown people → person
   proposals (numbered, `BRAIN create person … --apply` on yes).
 - The raw dump verbatim in `20_Projects/<slug>/YYYY-MM-DD-brain-dump.md` (frontmatter `title`, `context`,
   `type: resource`).
-- `python3 .claude/skills/weekly/scripts/review.py portfolio --write` adds it to the portfolio block.
-- Post-condition: `BRAIN validate` passes; `BRAIN show 20_Projects/<slug>/CLAUDE.md` lists area and stakeholders.
+- Add its row to the `auto:portfolio` block of the root `CLAUDE.md` (row shape in `/weekly` step 5).
+- Post-condition: `BRAIN validate` passes; re-read `20_Projects/<slug>/CLAUDE.md`: `area` and `stakeholders` set.
 
 ## 6. Report and log
 Chat ≤ 8 lines: created path, sources found per source and gaps, first three next steps, open questions count.

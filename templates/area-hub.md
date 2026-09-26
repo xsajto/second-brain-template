@@ -18,6 +18,3 @@ What this role covers:
 
 | id | where | note |
 |---|---|---|
-
-<!-- auto:projection start -->
-<!-- auto:projection end -->

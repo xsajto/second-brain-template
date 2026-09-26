@@ -1,7 +1,7 @@
 """Core test suite (python3 stdlib unittest). Run: `bin/brain test` (= python3 -m unittest discover -s tests).
 
 Covers the vault library (frontmatter round-trip, link resolution), the brain CLI on a fixture vault (validate,
-link --apply + dirty guard, rename, projection, migrate ids, doctor) and sync conflict-copy detection.
+create, rename + dirty guard, doctor) and sync conflict-copy detection.
 """
 import json
 import sys
@@ -82,7 +82,6 @@ class Defaults(unittest.TestCase):
     def test_default_structure_is_english(self):
         self.assertEqual(paths.PEOPLE_DIR, "40_Knowledge/people")
         self.assertEqual(paths.ORGS_DIR, "40_Knowledge/orgs")
-        self.assertEqual(paths.PROJECT_SUBDIRS, ("meetings", "decisions", "notes", "outputs", "sources"))
         self.assertEqual(paths.RELATION_MAP, "relationship-map.md")
         self.assertEqual(paths.CONTEXTS, ("work", "private"))
         self.assertEqual(paths.SLUG_CTX, {"work": "work", "priv": "private"})
@@ -193,44 +192,34 @@ class Validate(FixtureCase):
 
 
 # ---------------------------------------------------------------- write commands
-class LinkApply(FixtureCase):
-    P = "20_Projects/work-alpha/CLAUDE.md"
+class DirtyGuard(FixtureCase):
+    P = "20_Projects/work-alpha/CLAUDE.md"   # links ada-example, so a rename rewrites it
 
     def test_dry_run_writes_nothing(self):
         before = self.v.read(self.P)
-        r = self.v.brain("link", "work-alpha/CLAUDE", "--stakeholders", "bob-sample")
+        r = self.v.brain("rename", "ada-example", "ada-e")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("dry run", r.stdout)
         self.assertEqual(self.v.read(self.P), before)
 
     def test_apply_dirty_guard_and_own_write(self):
-        r = self.v.brain("link", "work-alpha/CLAUDE", "--stakeholders", "bob-sample", "--apply")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("[[bob-sample|Bob Sample]]", vault.Frontmatter(self.v.read(self.P)).raw("stakeholders"))
-        # uncommitted now, but it is brain's own last write -> allowed
-        r = self.v.brain("link", "work-alpha/CLAUDE", "--stakeholders", "carol-demo", "--apply")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(len(vault.Frontmatter(self.v.read(self.P)).get("stakeholders")), 3)
-        # a foreign edit on top -> refused, file untouched
+        # a foreign edit -> refused, file untouched
         self.v.put(self.P, self.v.read(self.P) + "\nmanual edit\n")
         before = self.v.read(self.P)
-        r = self.v.brain("link", "work-alpha/CLAUDE", "--related", "billing", "--apply")
+        r = self.v.brain("rename", "ada-example", "ada-e", "--apply")
         self.assertEqual(r.returncode, 1)
         self.assertIn("refusing", r.stderr)
         self.assertEqual(self.v.read(self.P), before)
-        r = self.v.brain("link", "work-alpha/CLAUDE", "--related", "billing", "--apply", "--allow-dirty")
+        r = self.v.brain("rename", "ada-example", "ada-e", "--apply", "--allow-dirty")
         self.assertEqual(r.returncode, 0, r.stderr)
+        # uncommitted now, but it is brain's own last write -> allowed
+        r = self.v.brain("rename", "ada-e", "ada-f", "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("[[ada-f|", self.v.read(self.P))
         log = (self.v.root / paths.BRAIN_LOGS).glob("*.jsonl")
         actions = [json.loads(ln)["action"] for f in log for ln in f.read_text().splitlines()]
         self.assertIn("dirty-own", actions)
         self.assertIn("dirty-allowed", actions)
-
-    def test_unlink_logs_ended_edge(self):
-        r = self.v.brain("unlink", "work-alpha/CLAUDE", "--stakeholders", "ada-example", "--ended", "2026-09-01",
-                         "--apply")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        text = self.v.read(self.P)
-        self.assertIn("- 2026-09-01 — ended: stakeholders [[ada-example|Ada Example]] (brain unlink)", text)
 
 
 class Rename(FixtureCase):
@@ -253,21 +242,6 @@ class Rename(FixtureCase):
         self.assertEqual(self.v.brain("validate").returncode, 0)
 
 
-class Projection(FixtureCase):
-    def test_area_projection_by_edges(self):
-        g = self.graph()
-        found = brainkg.area_projection(g, "30_Areas/engineering/engineering-hub.md")
-        self.assertEqual(found["project"], {"20_Projects/work-alpha/CLAUDE.md"})
-        self.assertEqual(found["system"], {"40_Knowledge/work/billing/billing.md"})
-        self.assertEqual(found["person"], {"40_Knowledge/people/ada-example.md"})   # one hop: stakeholder
-        r = self.v.brain("project", "engineering", "--write", "--apply")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        hub = self.v.read("30_Areas/engineering/engineering-hub.md")
-        self.assertIn(brainkg.PROJ_START, hub)
-        self.assertIn("[[work-alpha/CLAUDE|Alpha]]", hub)
-        self.assertIn("**Projects (1)**", hub)
-
-
 class Create(FixtureCase):
     def test_project_person_decision(self):
         r = self.v.brain("create", "project", "Garden Plan", "--context", "private", "--apply")
@@ -282,19 +256,6 @@ class Create(FixtureCase):
         self.assertEqual(len(made), 1)
         self.assertEqual(vault.Frontmatter(made[0].read_text()).get("context"), "work")   # from the slug prefix
         self.assertNotEqual(self.v.brain("create", "person", "X", "--context", "nope").returncode, 0)
-
-
-class MigrateIds(FixtureCase):
-    extra = {"00_Inbox/an-idea.md": "---\ntitle: An idea\n---\n\n# An idea\n"}
-
-    def test_backfills_id_and_type(self):
-        r = self.v.brain("migrate", "ids", "--apply")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        fmo = vault.Frontmatter(self.v.read("00_Inbox/an-idea.md"))
-        self.assertEqual(fmo.get("id"), "note/an-idea")
-        self.assertEqual(fmo.get("type"), "note")
-        self.assertTrue(self.v.read("00_Inbox/an-idea.md").endswith("\n# An idea\n"))
-        self.assertIn("nothing to change", self.v.brain("migrate", "ids", "--apply").stdout)
 
 
 class Doctor(FixtureCase):

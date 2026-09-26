@@ -42,12 +42,12 @@ DEFAULTS = {
     },
     "shared_namespace": "shared",             # knowledge owned by no context
     "flat_knowledge": [],                     # folders below 40_Knowledge/ listed in full in index.md (never collapsed)
-    "vendor_dirs": [],                        # bulk reference folders kept out of index.md and `find --text`
+    "vendor_dirs": [],                        # bulk reference folders kept out of index.md
     "companions": [],                         # extra file names allowed next to subfolders (branch/leaf rule)
     "system_dirs": ["bin", "lib", "tests", "templates", "docs", "plugins"],  # root folders that hold no notes
-    "labels": {},                             # type -> plural label for projections (overrides schema.json)
+    "labels": {},                             # type -> plural label (overrides schema.json); no reader in the core
     "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    "stopwords": [],                          # extra words `brain find --text` ignores (note language)
+    "stopwords": [],                          # no reader in the core; kept so existing configs stay valid
     "pending_marker": "pending",              # a numbered proposal line in a run log ending in this waits for an answer
     "task_manager": {"default": "none"},
     "integrations": {},

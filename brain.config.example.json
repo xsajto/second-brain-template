@@ -1,5 +1,5 @@
 {
-  "user": {"name": "Ada Example", "role": "Engineering lead", "org": "Acme Corp"},
+  "user": {"name": "Ada Example", "role": "Engineering lead", "org": "Acme Corp", "email": "ada@example.com"},
   "language": "en",
   "roots": {".": {"contexts": ["work", "private"]}},
   "contexts": {
@@ -33,6 +33,7 @@
   "integrations": {
     "google": {"accounts": {"work": "ada@example.com", "private": "ada.private@example.com"}},
     "slack": {"mcp": "slack", "morning": "mentions and DMs since yesterday"},
+    "atlassian": {"mcp": "atlassian", "site": "acme.atlassian.net", "morning": "Jira tickets I watch, updated since the last run"},
     "transcripts": {"dir": "00_Inbox/meetings"}
   }
 }

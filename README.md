@@ -21,20 +21,31 @@ Inbox / Daily  ----->  process-meetings / curator  ----->  /morning, /weekly  --
 - Python 3.10+ (stdlib only — no packages to install)
 - git
 - Optional: [Obsidian](https://obsidian.md) for graph view and a daily-notes UI
-- Optional: a Google CLI (e.g. `gog`) or MCP servers for calendar, mail, Slack, or a task manager — every
-  integration is opt-in and configured during onboarding
+- [Homebrew](https://brew.sh); onboarding installs `gog` (Google CLI) and optional `glab`/`gh` with it
+- Company connectors (Slack, Jira/Confluence) come preset in `.mcp.json`; every integration is connected
+  and verified during onboarding
 
 ## Install
 
+Instalace (macOS, ~20 minut):
+
 ```
-git clone <this repo>
-cd second-brain
-claude   # open Claude Code in this folder
+git clone <url-šablony> muj-brain
+cd muj-brain
+claude            # otevře Claude Code v této složce; potvrď projektové MCP servery (Slack, Atlassian)
 ```
 
-Then run `/onboarding`. It interviews you (who you are, your roles/contexts, note language, task manager),
-writes `brain.config.json`, creates the folder structure and your first notes, and optionally connects
-sources and schedules the daily/weekly routines.
+V Claude Code napiš `/onboarding`. Onboarding česky:
+
+1. odpojí složku od šablony — ukáže, co smaže (`.git` šablony), a po tvém „ano" založí nový vlastní git
+   repozitář (tvoje poznámky se nikdy nepushnou do šablony);
+2. zkontroluje instalaci (brew, python3 ≥ 3.10, git, `gog`, MCP servery, hooky, `bin/brain doctor`) a nabídne opravy;
+3. zeptá se, kdo jsi, na pracovní e-mail, role a jazyk poznámek, zapíše `brain.config.json` a založí kostru;
+4. připojí Google (Gmail, Kalendář, Drive přes `gog`) a firemní konektory (Slack, Jira/Confluence, Asana,
+   volitelně GitLab, Grafana) — každý ověří jedním čtením;
+5. nabídne naplánování `/morning` a `/weekly` a krátkou prohlídku.
+
+Kdykoli později: `/onboarding --check` (jen kontrola, nic nemění) nebo `/onboarding` (úprava nastavení).
 
 ## Daily use
 
@@ -77,7 +88,7 @@ a filled-in example and `lib/config.py` for the authoritative defaults.
 
 | key | meaning | default |
 |---|---|---|
-| `user.name`, `user.role`, `user.org` | who the vault belongs to, for templates and prose | `""` each |
+| `user.name`, `user.role`, `user.org`, `user.email` | who the vault belongs to, for templates and prose; `email` = work identity for Google and connectors | `""` each (`email` unset) |
 | `language` | language skills write notes in | `en` |
 | `roots` | root path (relative to the workspace) → which contexts live there; `"."` = the workspace itself | `{".": {}}` (one root, every context) |
 | `contexts` | context name → `slug` (project folder prefix), `primary_area` (standing sources, relationship map), `namespace` (its `40_Knowledge/` folder) | `work` and `private`, each with a matching slug/area/namespace |
@@ -100,7 +111,7 @@ a filled-in example and `lib/config.py` for the authoritative defaults.
 | `system_dirs` | root folders that hold no notes | `["bin", "lib", "tests", "templates", "docs", "plugins"]` |
 | `labels` | type → plural label override for projections (note language) | `{}` |
 | `weekdays` | weekday names, for note language | English names |
-| `stopwords` | extra words `brain find --text` ignores | `[]` |
+| `stopwords` | unused, kept for config compatibility | `[]` |
 | `pending_marker` | word ending a run-log line that marks a proposal awaiting an answer | `pending` |
 | `task_manager` | default task manager integration | `{"default": "none"}` |
 | `integrations` | optional external tool configuration | `{}` |
