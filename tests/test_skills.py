@@ -181,7 +181,7 @@ class Sessions(Case):
     def test_list_and_extract(self):
         proj = self.v.tmp / "claude" / "projects" / "-home-ada-code"
         proj.mkdir(parents=True)
-        lines = [{"type": "user", "cwd": "/home/ada/code", "timestamp": "2026-09-01T10:00:00Z",
+        lines = [{"type": "user", "cwd": "/srv/ada/code", "timestamp": "2026-09-01T10:00:00Z",
                   "message": {"role": "user", "content": "Plan the Acme Corp migration with Bob"}},
                  {"type": "assistant", "timestamp": "2026-09-01T10:01:00Z",
                   "message": {"role": "assistant", "content": [{"type": "text", "text": "Sure, three steps."},
@@ -190,7 +190,7 @@ class Sessions(Case):
                   "message": {"role": "user", "content": "<system-reminder>noise</system-reminder>"}}]
         (proj / "abc12345.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\nnot json\n", encoding="utf-8")
         rows = self.run_json(self.script, "--list", "--base", str(proj.parent))
-        self.assertEqual((rows[0]["cwd"], rows[0]["sessions"]), ("/home/ada/code", 1))
+        self.assertEqual((rows[0]["cwd"], rows[0]["sessions"]), ("/srv/ada/code", 1))
         text = self.run_json(self.script, "--extract", str(proj), raw=True)
         self.assertIn("Acme Corp migration", text)
         self.assertIn("three steps", text)

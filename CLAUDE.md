@@ -73,7 +73,7 @@ bulk-download external data into the vault.
 | `process-meetings` | Turns transcripts in `00_Inbox/meetings/` into meeting notes routed to the right project or area. |
 | `research` | Options comparison written to `40_Knowledge/research/<date-slug>/`. |
 | `new-project` | Turns a brain dump into a project folder with `CLAUDE.md`. |
-| `people` | Maintains person notes and the relationship map from the user's communication. |
+| `people` | Maintains person notes and the relationship map from the user's communication. The user's own person note has `me: true` in frontmatter. |
 | `correct` | Correction sweep that fixes one wrong fact everywhere it was restated. |
 | `sync` | Git commit/pull/push of the vault. |
 

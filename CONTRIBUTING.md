@@ -23,7 +23,7 @@ hostnames, tokens, or personal file paths may be committed — examples use fict
 `Acme Corp`, `example.com`). Before opening a PR, scan your diff:
 
 ```
-grep -rniIE "/Users/|/home/[a-z]|xox[bp]-|ghp_|AKIA" . --exclude-dir=.git
+grep -rniIE "/Use[r]s/|/hom[e]/[a-z]|xox[bp]-|ghp_|AKIA" . --exclude-dir=.git
 ```
 
 Also check for stray e-mail addresses whose domain isn't `example.com` or `example.org` — those are

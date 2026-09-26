@@ -48,3 +48,5 @@ The remaining skills aren't scheduled — they trigger on an event, not a clock:
 Every routine and skill above produces a **numbered list of proposals**; nothing beyond the note you're
 actively editing is written until you confirm. There is no routine that silently rewrites other notes in
 the background.
+
+> Scheduled routines run as cloud agents against the vault's git remote, so run `/sync` once (set up a private remote) before `/schedule`. Without a remote, run `/morning` and `/weekly` by hand.

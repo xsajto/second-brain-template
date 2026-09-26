@@ -51,8 +51,8 @@ class Config(unittest.TestCase):
         cfg = config.load(ex)
         self.assertEqual(config.check(cfg), [])
         defaults = config.load(Path(tempfile.mkdtemp()) / "none.json")
-        self.assertEqual({k: v for k, v in cfg.items() if k != "user"},
-                         {k: v for k, v in defaults.items() if k != "user"})
+        self.assertEqual({k: v for k, v in cfg.items() if k not in ("user", "integrations")},
+                         {k: v for k, v in defaults.items() if k not in ("user", "integrations")})
 
 
 if __name__ == "__main__":

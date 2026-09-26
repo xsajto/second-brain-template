@@ -30,5 +30,9 @@
   "stopwords": [],
   "pending_marker": "pending",
   "task_manager": {"default": "none"},
-  "integrations": {}
+  "integrations": {
+    "google": {"accounts": {"work": "ada@example.com", "private": "ada.private@example.com"}},
+    "slack": {"mcp": "slack", "morning": "mentions and DMs since yesterday"},
+    "transcripts": {"dir": "00_Inbox/meetings"}
+  }
 }
