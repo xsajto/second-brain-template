@@ -1,0 +1,32 @@
+# Python / OS noise
+__pycache__/
+*.pyc
+.DS_Store
+*.brain-tmp
+
+# Generated agent context (rebuilt by the SessionStart hook: bin/brain context --write)
+.claude/index.md
+.claude/hot.md
+.claude/settings.local.json
+
+# Obsidian per-device state (keep the rest of .obsidian/ if you want to share settings)
+.obsidian/workspace*.json
+.obsidian/cache
+.trash/
+
+# Your vault is your data: brain.config.json and the numbered folders are tracked on purpose.
+# If this repo is public and your notes are not, uncomment what should stay local:
+# brain.config.json
+# 00_Inbox/**
+# 10_Daily/**
+# 20_Projects/**
+# 30_Areas/**
+# 40_Knowledge/**
+# 50_Raw/**
+# 99_Archives/**
+# !**/.gitkeep
+#
+# Large binaries in 50_Raw/ (recordings, exports) are better kept out of git:
+# 50_Raw/**/*.mp3
+# 50_Raw/**/*.m4a
+# 50_Raw/**/*.pdf

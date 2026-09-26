@@ -1,0 +1,114 @@
+{
+  "version": 4,
+  "doc": "Knowledge-graph schema (numbered roots, ascii kebab-case names). Read by lib/vault.py and bin/brainkg.py; extend it with `brain schema add-type|add-kind`. Markdown is the source of truth; relations are stored only in their canonical direction, inverses are computed by the index. Relation from/to wildcards: \"*\" = any type, \"@entity\" = every type in types.entity (resolved at load time). `{{name}}` in inference patterns and companion names = the folder from brain.config.json › folders (people, orgs, meetings, decisions, ideas, relationship_map, system_docs …).",
+  "id_format": "<type>/<ascii-kebab>",
+  "types": {
+    "entity": ["person", "org", "system", "project", "area", "meeting", "decision", "concept"],
+    "structural": ["daily", "note", "map", "resource", "log"]
+  },
+  "kinds": {
+    "person": [],
+    "org": ["company", "team"],
+    "system": ["product", "internal", "vendor", "technology", "site", "installation", "datacenter", "server", "service", "repository", "network"],
+    "project": [],
+    "area": ["role"],
+    "meeting": ["ritual", "one-off", "1on1", "transcript"],
+    "decision": [],
+    "concept": ["term", "principle", "method"],
+    "daily": [],
+    "note": ["idea", "howto", "analysis", "output", "research"],
+    "map": ["hub", "moc"],
+    "resource": ["doc", "ebook", "export", "transcript", "report"],
+    "log": []
+  },
+  "kinds_doc": "An empty list means any kind is accepted. system/site = office, data centre or other location.",
+  "labels": {
+    "project": "Projects",
+    "system": "Systems",
+    "org": "Organisations",
+    "person": "People",
+    "area": "Areas",
+    "decision": "Decisions",
+    "meeting": "Meetings",
+    "concept": "Concepts",
+    "daily": "Daily notes",
+    "note": "Notes",
+    "map": "Maps",
+    "resource": "Resources",
+    "log": "Logs"
+  },
+  "labels_doc": "Plural label per type for projections (hubs, MOCs); a type without a label shows its name. brain.config.json › labels overrides them (note language).",
+  "relations": {
+    "project":         {"from": ["meeting", "decision", "note"], "to": ["project"], "inverse": "notes", "cardinality": "one", "doc": "derivable from location"},
+    "area":            {"from": ["project", "system", "org", "concept"], "to": ["area"], "inverse": "contains", "cardinality": "one"},
+    "owner":           {"from": ["@entity"], "to": ["person"], "inverse": "owns", "cardinality": "one"},
+    "stakeholders":    {"from": ["project"], "to": ["person"], "inverse": "stakeholder_in", "cardinality": "many"},
+    "attendees":       {"from": ["meeting"], "to": ["person"], "inverse": "attended", "cardinality": "many"},
+    "member_of":       {"from": ["person"], "to": ["org"], "inverse": "members", "cardinality": "many"},
+    "responsible_for": {"from": ["area", "person", "org"], "to": ["system", "project"], "inverse": "responsibility_of", "cardinality": "many"},
+    "part_of":         {"from": ["@entity"], "to": ["@entity"], "same_type": true, "inverse": "parts", "cardinality": "many", "doc": "same type only: org->org, system->system, project->project, <new>-><new>"},
+    "uses":            {"from": ["@entity"], "to": ["@entity"], "inverse": "used_by", "cardinality": "many"},
+    "depends_on":      {"from": ["@entity"], "to": ["@entity"], "same_type": true, "inverse": "required_by", "cardinality": "many", "doc": "same type only: system->system, project->project, …"},
+    "affects":         {"from": ["@entity"], "to": ["@entity"], "inverse": "affected_by", "cardinality": "many"},
+    "related":         {"from": ["*"], "to": ["*"], "inverse": "related", "cardinality": "many", "symmetric": true}
+  },
+  "index_edges": {
+    "links_to":   {"inverse": "linked_from", "doc": "wikilinks in the body (outside auto:links)"},
+    "mentions":   {"inverse": "mentioned_in", "doc": "wikilinks inside the <!-- auto:links --> block"},
+    "provenance": {"inverse": "provenance_of", "doc": "frontmatter source: when it resolves to a note"}
+  },
+  "legacy_relation_strings": ["owner", "stakeholders", "attendees", "project"],
+  "legacy_doc": "Older vaults may hold plain names or slugs instead of wikilinks; the index resolves them by filename/alias/slug and validate warns (relation-not-wikilink).",
+  "required": {
+    "*": ["id", "type", "title"],
+    "person": ["context"],
+    "project": ["context", "status"],
+    "area": ["context"],
+    "decision": ["date"],
+    "meeting": ["context"]
+  },
+  "companions": {
+    "names": ["README.md", "AGENTS.md", "CLAUDE.md", "{{relationship_map}}"],
+    "globs": ["*-hub.md", "*-moc.md", "*.base"],
+    "doc": "Files allowed next to subfolders in a branch folder (folder rule); brain.config.json › companions adds names. The relationship map may exist in several areas; link it path-qualified."
+  },
+  "branch_leaf_roots": ["20_Projects", "30_Areas", "40_Knowledge", "10_Daily"],
+  "knowledge": {
+    "doc": "40_Knowledge/: folder = whose + topic (humans), frontmatter type/kind = what (machines). The registries (brain.config.json › folders.people / folders.orgs) are flat global folders whose notes have a fixed type; every other folder below 40_Knowledge/ is a namespace (who owns the knowledge: one per context, the shared namespace, any company) with free topic subfolders up to max_depth levels. A folder gets a generated <folder>-hub.md only with >= hub_min_notes notes (recursively) or >= hub_min_subdirs subfolders; folders/families above list_max notes collapse to one line in index.md and a compact list in hubs. split/cluster/namespace thresholds are for curator proposals.",
+    "root": "40_Knowledge",
+    "max_depth": 6,
+    "hub_min_notes": 10,
+    "hub_min_subdirs": 2,
+    "list_max": 25,
+    "split_threshold": 15,
+    "cluster_threshold": 5,
+    "namespace_threshold": 3
+  },
+  "type_tags": {
+    "person": "person",
+    "project": "project",
+    "meeting": "meeting",
+    "decision": "decision",
+    "idea": "note",
+    "moc": "map",
+    "resource": "resource",
+    "daily": "daily"
+  },
+  "inference": [
+    {"match": "path", "glob": "50_Raw/logs/**", "type": "log"},
+    {"match": "path", "regex": "^(20_Projects|99_Archives)/[^/]+/CLAUDE\\.md$", "type": "project"},
+    {"match": "path", "regex": "^30_Areas/([^/]+)/\\1-hub\\.md$", "type": "area", "kind": "role", "doc": "the area note is its hub"},
+    {"match": "path", "regex": "(^|/)[^/]+-hub\\.md$", "type": "map", "kind": "hub"},
+    {"match": "path", "regex": "(^|/)[^/]+-moc\\.md$", "type": "map", "kind": "moc"},
+    {"match": "path", "regex": "^10_Daily/\\d{4}/\\d{4}-\\d{2}-\\d{2}\\.md$", "type": "daily"},
+    {"match": "path", "regex": "^{{people}}/[^/]+\\.md$", "type": "person"},
+    {"match": "tags", "doc": "first tag found in type_tags wins (order of type_tags)"},
+    {"match": "path", "regex": "^{{orgs}}/", "type": "org"},
+    {"match": "path", "regex": "^40_Knowledge/(.+/)?{{ideas}}/", "type": "note", "kind": "idea", "doc": "any ideas folder below 40_Knowledge holds ideas"},
+    {"match": "path", "regex": "(^|/){{decisions}}/[^/]+\\.md$", "type": "decision"},
+    {"match": "path", "regex": "(^|/){{meetings}}/[^/]+\\.md$|^00_Inbox/meetings/", "type": "meeting"},
+    {"match": "path", "regex": "^50_Raw/", "type": "resource"},
+    {"match": "path", "regex": "^{{system_docs}}/", "type": "note"},
+    {"match": "default", "type": "note"}
+  ]
+}

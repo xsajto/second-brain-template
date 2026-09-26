@@ -1,0 +1,34 @@
+{
+  "user": {"name": "Ada Example", "role": "Engineering lead", "org": "Acme Corp"},
+  "language": "en",
+  "roots": {".": {"contexts": ["work", "private"]}},
+  "contexts": {
+    "work": {"slug": "work", "primary_area": "30_Areas/work", "namespace": "work"},
+    "private": {"slug": "priv", "primary_area": "30_Areas/private", "namespace": "private"}
+  },
+  "folders": {
+    "people": "40_Knowledge/people",
+    "orgs": "40_Knowledge/orgs",
+    "meetings": "meetings",
+    "decisions": "decisions",
+    "notes": "notes",
+    "outputs": "outputs",
+    "sources": "sources",
+    "ideas": "ideas",
+    "reports": "50_Raw/reports",
+    "relationship_map": "relationship-map.md",
+    "templates": "templates",
+    "system_docs": "docs"
+  },
+  "shared_namespace": "shared",
+  "flat_knowledge": [],
+  "vendor_dirs": [],
+  "companions": [],
+  "system_dirs": ["bin", "lib", "tests", "templates", "docs", "plugins"],
+  "labels": {},
+  "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  "stopwords": [],
+  "pending_marker": "pending",
+  "task_manager": {"default": "none"},
+  "integrations": {}
+}

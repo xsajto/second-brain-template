@@ -1,0 +1,50 @@
+#!/bin/bash
+# brain - CLI entry of the second brain. Thin dispatcher: the graph commands live in brainkg.py, the agent
+# context (index.md, hot.md, hooks) in context.py. Python 3.10+ stdlib only; no network.
+set -euo pipefail
+BIN="$(cd "$(dirname "$0")" && pwd)"
+PY="${BRAIN_PYTHON:-python3}"
+
+usage() {
+  cat <<'USAGE'
+brain - second brain CLI
+
+  brain doctor      generic health checks: python, brain.config.json, vault folders, schema, git
+  brain test        stdlib unittest suite (tests/)
+
+Agent context (context.py; no network):
+  brain context --write                         regenerate .claude/index.md (one line per note) + .claude/hot.md
+  brain context --hook                          SessionStart hook: --write, then print hot.md (+ ▸ triggers)
+  brain context --post-tool                     PostToolUse hook: validate the edited note (stdin = hook JSON)
+
+Knowledge graph (brainkg.py; write commands are a dry run unless --apply; --apply refuses files with
+foreign uncommitted changes - brain's own last writes are fine - unless --allow-dirty):
+  brain index [--json]                          graph statistics
+  brain find [--type --kind --context --area ROLE --status] [--text "words" [--all]]
+  brain show <note>                             frontmatter, area, outgoing and inverse edges
+  brain related <note> [--depth N --rel a,b]    neighbourhood tree grouped by relation (+ area)
+  brain project <role|entity|MOC|40_Knowledge/folder> [--write [--apply]] | --all   auto:projection block
+  brain validate [--json] [--strict] [--file PATH]   schema, relations, links, ids, type-vs-folder, branch/leaf
+  brain create <type> "Title" [--kind --context --area --project]
+                [--namespace NS --topic a/b | --in NS/a/b]   knowledge types land in 40_Knowledge/<ns>/<topic>/
+  brain schema list [--json]                    types, kinds, labels, note counts, off-schema values
+  brain schema add-type <name> [--entity] [--kinds a,b] [--label "..."] [--required k1,k2]
+  brain schema add-kind <type> <kind>           extend lib/schema.json (dry run unless --apply)
+  brain link|unlink <note> --<rel> <target>     typed relations (unlink: --ended DATE --source S)
+  brain move <note> <dest-dir> · brain rename <note> "New"
+  brain migrate ids                             backfill id/type frontmatter on every note
+  brain <cmd> --help                            details
+
+Folder names, contexts, roots and project slug prefixes come from brain.config.json (see
+brain.config.example.json); without it the defaults apply.
+USAGE
+}
+
+case "${1:-}" in
+  test)     shift; PYTHONDONTWRITEBYTECODE=1 exec "$PY" -m unittest discover -s "$BIN/../tests" -t "$BIN/../tests" "$@" ;;
+  context)  shift; exec "$PY" "$BIN/context.py" "$@" ;;
+  doctor|index|validate|find|show|related|project|create|link|unlink|move|rename|migrate|schema)
+            exec "$PY" "$BIN/brainkg.py" "$@" ;;
+  ""|-h|--help|help) usage ;;
+  *)        echo "brain: unknown command '$1'" >&2; usage >&2; exit 2 ;;
+esac
